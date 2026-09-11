@@ -105,4 +105,4 @@ Unknown request ID and unsupported `Closed` status manual checks remain **Pendin
 
 ## Commit Information
 
-Eventual commit: **Pending**
+Implementation commit: `f29cb83` - `feat: protect request status transitions`
