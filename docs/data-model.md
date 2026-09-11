@@ -232,6 +232,12 @@ Indexes should only be added for information that is searched frequently. During
 
 These indexes support real product queries without adding unnecessary complexity.
 
+## 4.1 First Implementation
+
+The first implementation uses Prisma 6.x with SQLite. It stores `User`, `Department`, and `Request` records. The seed creates one demo employee and the three supported departments. For request creation, the backend finds that employee by email and creates the request with the server's current timestamp and status `Submitted`.
+
+The React client sends only title, description, department, and the approval-required flag. It cannot choose the requester, creation time, or initial status. Authentication and full role authorization are deferred.
+
 ## 5. Connection to the Requirements
 
 This data model comes directly from `product-spec.md` and `architecture.md`.

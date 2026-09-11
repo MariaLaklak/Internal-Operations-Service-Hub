@@ -1,0 +1,9 @@
+{
+  "name": "internal-operations-service-hub",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "backend:install": "npm.cmd --prefix backend install",
+    "frontend:install": "npm.cmd --prefix frontend install"
+  }
+}
