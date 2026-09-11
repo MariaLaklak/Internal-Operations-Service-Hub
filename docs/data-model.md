@@ -17,7 +17,7 @@ Important information:
 * Email
 * Securely stored password
 * Role
-* Department, when needed
+* Nullable department relation, when needed
 
 A user has one role: `Employee`, `Department Staff`, or `Approver`.
 
@@ -31,7 +31,7 @@ The first version contains:
 * Human Resources
 * Finance
 
-Each department can receive many requests and can have many department staff members.
+Each department can receive many requests and can have many department staff members through the inverse `Department.users` relation. A department staff member may belong to a department; an employee may have no department.
 
 #### Request
 
@@ -191,6 +191,8 @@ The following information must be stored permanently:
 * Approval decisions
 * Request history
 
+The implemented Prisma relation keeps `User.departmentId` nullable and connects it to `Department`. `Department.users` is the inverse relation. This preserves employees without a department while allowing department staff to belong to the department they serve. The existing Demo Employee ID and `Request.requesterId` references are preserved; adding the relation does not replace the request ownership reference.
+
 This information must remain available after a user signs out or the application restarts.
 
 ### 3.2 Derived Information
@@ -234,9 +236,9 @@ These indexes support real product queries without adding unnecessary complexity
 
 ## 4.1 First Implementation
 
-The first implementation uses Prisma 6.x with SQLite. It stores `User`, `Department`, and `Request` records. The seed creates one demo employee and the three supported departments. For request creation, the backend finds that employee by email and creates the request with the server's current timestamp and status `Submitted`.
+The first implementation uses Prisma 6.x with SQLite. It stores `User`, `Department`, and `Request` records. The seed creates one demo employee, one IT department staff user, and the three supported departments. For request creation, the backend finds the Demo Employee by email and creates the request with the server's current timestamp and status `Submitted`.
 
-The React client sends only title, description, department, and the approval-required flag. It cannot choose the requester, creation time, or initial status. Authentication and full role authorization are deferred.
+The React client sends only title, description, department, and the approval-required flag when creating a request. For the local teaching status action, it sends only an actor alias; it cannot choose the requester, creation time, or initial status. Authentication remains deferred.
 
 ## 5. Connection to the Requirements
 

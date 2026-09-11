@@ -1,4 +1,4 @@
-import type { CreateRequestInput, Request } from '../types/request';
+import type { ActorAlias, CreateRequestInput, Request } from '../types/request';
 
 const API_URL = 'http://localhost:3000/api/requests';
 
@@ -25,4 +25,17 @@ export async function createRequest(input: CreateRequestInput): Promise<Request>
 export async function getRequests(): Promise<Request[]> {
   const response = await fetch(API_URL);
   return readResponse<Request[]>(response);
+}
+
+export async function updateRequestStatus(requestId: string, actorAlias: ActorAlias): Promise<Request> {
+  const response = await fetch(`${API_URL}/${encodeURIComponent(requestId)}/status`, {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Actor-Id': actorAlias
+    },
+    body: JSON.stringify({ status: 'In Progress' })
+  });
+
+  return readResponse<Request>(response);
 }

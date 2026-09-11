@@ -13,11 +13,25 @@ async function main() {
 
   await prisma.user.upsert({
     where: { email: 'demo.employee@example.com' },
-    update: {},
+    update: { role: 'Employee' },
     create: {
       name: 'Demo Employee',
       email: 'demo.employee@example.com',
       role: 'Employee'
+    }
+  });
+
+  await prisma.user.upsert({
+    where: { email: 'it.department.staff@example.com' },
+    update: {
+      role: 'Department Staff',
+      department: { connect: { name: 'IT' } }
+    },
+    create: {
+      name: 'IT Department Staff',
+      email: 'it.department.staff@example.com',
+      role: 'Department Staff',
+      department: { connect: { name: 'IT' } }
     }
   });
 }
