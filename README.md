@@ -61,11 +61,39 @@ One web application, one backend, and one data store keep the project manageable
 
 ## Current Status
 
-The project is currently at version `v0.1 — Product Foundation`.
+The project is currently at version `v0.2 — Request Submission Slice`.
 
-This stage contains the product requirements, architecture, data model, and an architecture decision record. The application has not been implemented yet.
+The first verified request-submission slice is implemented; authentication, authorization, assignment, approvals, comments, and later lifecycle transitions remain future work.
 
-The goal is to complete the working application by the end of the five-week academy.
+The first implemented slice is a request-submission flow using a React frontend, NestJS backend, Prisma, and SQLite. The goal is to complete the working application by the end of the five-week academy.
+
+## Running the Request Submission Slice
+
+Requirements: Node.js 22.
+
+From the repository root, copy `backend/.env.example` to `backend/.env`, then run:
+
+```powershell
+npm.cmd --prefix backend install
+npm.cmd --prefix backend run prisma:generate
+npm.cmd --prefix backend run prisma:migrate
+npm.cmd --prefix backend run prisma:seed
+npm.cmd --prefix backend run test:e2e
+npm.cmd --prefix backend run build
+npm.cmd --prefix backend run start:dev
+```
+
+In another terminal, run the frontend:
+
+```powershell
+npm.cmd --prefix frontend install
+npm.cmd --prefix frontend run build
+npm.cmd --prefix frontend run dev
+```
+
+The API exposes `POST /api/requests` and `GET /api/requests`. The backend selects the seeded demo employee and assigns the creation time and initial `Submitted` status. The frontend does not send requester ID, creation time, or status. Authentication and full role authorization are deferred to a following slice.
+
+To prove persistence, submit a request, stop and restart the backend, then call `GET http://localhost:3000/api/requests` and confirm the request remains.
 
 ## First-Version Scope
 

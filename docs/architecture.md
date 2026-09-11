@@ -77,6 +77,12 @@ One central Data Store is enough for the expected small internal usage and will 
 
 The first version does not use external services or microservices because they are not necessary for the main request process and would make the project more complicated.
 
+## Implemented Request Submission Slice
+
+The first implementation uses a React frontend, a NestJS backend, and Prisma with SQLite. The frontend sends request fields to `POST /api/requests` and retrieves the demo employee's requests from `GET /api/requests`. The backend validates the request, selects the seeded demo employee, assigns the creation time and initial `Submitted` status, saves it, and returns the saved record.
+
+Authentication and full role authorization are deliberately deferred to the following session. Until then, the backend-selected seeded demo employee is a temporary limitation. The frontend does not send requester ID, creation time, or status.
+
 ## 7. Requirements Traceability
 
 The architecture comes directly from the requirements in `product-spec.md`:
