@@ -1,4 +1,6 @@
 export type Department = 'IT' | 'Human Resources' | 'Finance';
+export type RequestStatus = 'Submitted' | 'In Progress' | 'Resolved';
+export type ActorAlias = 'demo-employee' | 'it-staff-001';
 
 export type Request = {
   id: string;
@@ -7,7 +9,7 @@ export type Request = {
   department: Department;
   requester: string;
   requiresApproval: boolean;
-  status: string;
+  status: RequestStatus;
   createdAt: string;
 };
 

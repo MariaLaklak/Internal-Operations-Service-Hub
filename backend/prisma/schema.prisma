@@ -8,18 +8,21 @@ datasource db {
 }
 
 model User {
-  id        String    @id @default(cuid())
-  name      String
-  email     String    @unique
-  role      String
-  createdAt DateTime  @default(now())
-  requests  Request[] @relation("Requester")
+  id           String      @id @default(cuid())
+  name         String
+  email        String      @unique
+  role         String
+  createdAt    DateTime    @default(now())
+  departmentId String?
+  department   Department? @relation(fields: [departmentId], references: [id])
+  requests     Request[]   @relation("Requester")
 }
 
 model Department {
   id       String    @id @default(cuid())
   name     String    @unique
   requests Request[]
+  users    User[]
 }
 
 model Request {

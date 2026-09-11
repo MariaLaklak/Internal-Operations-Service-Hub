@@ -81,7 +81,9 @@ The first version does not use external services or microservices because they a
 
 The first implementation uses a React frontend, a NestJS backend, and Prisma with SQLite. The frontend sends request fields to `POST /api/requests` and retrieves the demo employee's requests from `GET /api/requests`. The backend validates the request, selects the seeded demo employee, assigns the creation time and initial `Submitted` status, saves it, and returns the saved record.
 
-Authentication and full role authorization are deliberately deferred to the following session. Until then, the backend-selected seeded demo employee is a temporary limitation. The frontend does not send requester ID, creation time, or status.
+For the local teaching status action, the frontend sends only the selected actor alias in `X-Actor-Id`; it does not send or infer the actor role or department. The backend resolves that alias to a persisted User and owns the role, department, request-state, and transition checks. For `PATCH /api/requests/:id/status`, Prisma mutates the request only after every identity, authorization, department, and transition check passes. No external dependency was added.
+
+This teaching mechanism is local development behavior, not authentication. Real authentication remains future work. The backend-selected seeded demo employee is still used for request creation, and the frontend does not send requester ID, creation time, or initial status.
 
 ## 7. Requirements Traceability
 
