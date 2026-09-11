@@ -18,7 +18,7 @@ export default function App() {
     <main className="page-shell">
       <header>
         <p className="eyebrow">Internal Operations Service Hub</p>
-        <h1>What can we help with?</h1>
+        <h1>What can we help you with?</h1>
         <p className="intro">Send a request to the right department and keep its progress in view.</p>
       </header>
       <section className="workspace">
