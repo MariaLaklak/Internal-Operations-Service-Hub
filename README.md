@@ -1,56 +1,18 @@
 # Internal Operations Service Hub
 
-## Project Overview
+## Purpose and Current Slice
 
-The Internal Operations Service Hub is a company web application where employees can submit and follow requests for IT, Human Resources, and Finance.
+This repository contains a small internal request workflow for IT, Human Resources, and Finance. The current slice lets a Demo Employee submit and list requests, then lets the local teaching actor representing IT Department Staff move an IT request from `Submitted` to `In Progress`.
 
-The system gives employees and departments one organized place to manage requests instead of using different communication channels.
+The application path is React -> HTTP API -> NestJS -> Prisma -> SQLite. Real authentication, assignment, approvals, comments, notifications, and external integrations are outside this slice.
 
-## Problem
+See [Week 3 full-stack delivery](docs/week3-full-stack-delivery.md) for the evidence record and [Week 3 boundary protection](docs/week3-boundary-protection.md) for the authorization details.
 
-Employee requests may currently be sent through different and unorganized channels. Because of this, requests can be forgotten, sent to the wrong person, or handled without a clear status or responsible staff member.
+## Prerequisites
 
-This project aims to make the request process clearer and easier to follow.
-
-## Main Users
-
-- **Employee:** Submits requests, follows their status, and adds comments.
-- **Department Staff:** Handles requests for their department, assigns requests, updates statuses, and adds comments.
-- **Approver:** Approves or rejects requests that require authorization.
-
-## Main Features
-
-- Registered-user login
-- Role-based access
-- Request submission
-- Request assignment
-- Status tracking
-- Approval or rejection
-- Comments
-- Request history
-- Clear error handling
-- Safe handling of simultaneous requests
-
-## Request Workflow
-
-A new request starts with the status `Submitted`.
-
-The main request workflow is:
-
-```text
-Submitted → In Progress → Resolved
-```
-Some requests may also require an approval decision from an approver.
-
-## Architecture
-
-The system uses three main parts:
-
-1. A Web Interface for pages, forms, results, and errors.
-2. An Application Backend for validation, authorization, and request rules.
-3. Data Storage for users, requests, comments, approvals, and history.
-
-One web application, one backend, and one data store keep the project manageable within the five-week academy.
+- Windows PowerShell
+- Node.js 22 with npm
+- Chromium installed for the first browser E2E run
 
 ## Project Documentation
 
@@ -59,50 +21,86 @@ One web application, one backend, and one data store keep the project manageable
 - [Data Model](docs/data-model.md)
 - [Architecture Decision Record](docs/decisions/ADR-001.md)
 
-## Current Status
+## Install and Initialize
 
-The project is currently at version `v0.3 — Request Boundary Protection`.
-
-The request-submission slice and the first protected status transition are implemented. Real authentication, assignment, approvals, comments, and later lifecycle transitions remain future work.
-
-The first implemented slice is a request-submission flow using a React frontend, NestJS backend, Prisma, and SQLite. The goal is to complete the working application by the end of the five-week academy.
-
-## Running the Request Submission Slice
-
-Requirements: Node.js 22.
-
-From the repository root, copy `backend/.env.example` to `backend/.env`, then run:
+From the repository root:
 
 ```powershell
+Copy-Item backend/.env.example backend/.env
 npm.cmd --prefix backend install
+npm.cmd --prefix frontend install
 npm.cmd --prefix backend run prisma:generate
 npm.cmd --prefix backend run prisma:migrate
 npm.cmd --prefix backend run prisma:seed
-npm.cmd --prefix backend run test:e2e
-npm.cmd --prefix backend run build
+```
+
+The development database is `backend/prisma/dev.db` through `backend/.env`. Do not commit `backend/.env` or the database file.
+
+## Run Locally
+
+Use two PowerShell terminals from the repository root.
+
+Terminal 1, backend:
+
+```powershell
 npm.cmd --prefix backend run start:dev
 ```
 
-In another terminal, run the frontend:
+Terminal 2, frontend:
 
 ```powershell
-npm.cmd --prefix frontend install
-npm.cmd --prefix frontend run build
 npm.cmd --prefix frontend run dev
 ```
 
-The API exposes `POST /api/requests`, `GET /api/requests`, and `PATCH /api/requests/:id/status`. The backend selects the seeded demo employee and assigns the creation time and initial `Submitted` status. The frontend does not send requester ID, creation time, or initial status.
+Open the frontend at `http://localhost:5173`. The API is available at `http://localhost:3000/api/requests`.
 
-### Teaching Status Update
+## Exercise the Workflow
 
-For local teaching only, the frontend selects one of these aliases and sends it in the `X-Actor-Id` header:
+Submit a request in the browser with a title, description, and department. It appears as `Submitted` in the request list. The request body does not include requester, requester ID, creation time, or initial status; the backend owns those values.
 
-* `demo-employee`
-* `it-staff-001`
+For local teaching only, the actor selector sends one of these aliases in `X-Actor-Id`:
 
-This is a local teaching mechanism, not authentication. The backend resolves the alias to a persisted user and owns role, department, request-state, and transition checks.
+- `it-staff-001`: persisted IT Department Staff; allowed to update an IT request.
+- `demo-employee`: persisted Demo Employee; receives `403 Forbidden` for the status action.
 
-To attempt the status update, call:
+The aliases are not authentication. The backend resolves them to persisted users and checks the persisted role, department, request state, and transition.
+
+To exercise the API directly in PowerShell after submitting a request, set its ID and call the allowed and denied paths:
+
+```powershell
+$baseUrl = 'http://localhost:3000/api/requests'
+$requestId = '<request-id>'
+$body = @{ status = 'In Progress' } | ConvertTo-Json
+
+# List requests
+Invoke-RestMethod -Method Get -Uri $baseUrl
+
+# Allowed: IT Department Staff updates an IT request
+Invoke-RestMethod -Method Patch -Uri "$baseUrl/$requestId/status" -Headers @{ 'X-Actor-Id' = 'it-staff-001' } -ContentType 'application/json' -Body $body
+
+# Denied: Demo Employee receives HTTP 403
+try { Invoke-RestMethod -Method Patch -Uri "$baseUrl/$requestId/status" -Headers @{ 'X-Actor-Id' = 'demo-employee' } -ContentType 'application/json' -Body $body } catch { $_.Exception.Response.StatusCode }
+```
+
+## API Examples
+
+Create a request:
+
+```http
+POST /api/requests
+Content-Type: application/json
+
+{
+	"title": "VPN access",
+	"description": "I need VPN access for remote work.",
+	"department": "IT",
+	"requiresApproval": false
+}
+```
+
+Successful creation returns `201` and includes `id`, `title`, `description`, `department`, `requester`, `requiresApproval`, `status`, and `createdAt`. The initial status is `Submitted` and the requester is `Demo Employee`.
+
+List requests with `GET /api/requests`. Update status with:
 
 ```http
 PATCH /api/requests/:id/status
@@ -112,38 +110,33 @@ Content-Type: application/json
 { "status": "In Progress" }
 ```
 
-The only implemented transition is `Submitted` to `In Progress`. `Resolved` is recognized for validation but has no action yet. A `401` means the teaching header is missing or unknown, `403` means the persisted actor is not authorized for the request, `404` means the request does not exist, and `409` means the lifecycle transition is recognized but not allowed. Unsupported values such as `Closed` are `400` validation errors.
+The implemented transition is `Submitted` to `In Progress`. Blank titles return `400`; denied status actions return `403`; missing or unknown teaching aliases return `401`; an invalid lifecycle transition returns `409`.
 
-### Windows PowerShell Manual Verification
+## Automated Checks
 
-Run these commands against a running local backend after creating or obtaining a request ID. These commands are documentation examples and have not been recorded as completed verification in this session.
+Install Chromium once before the browser suite:
 
 ```powershell
-$baseUrl = 'http://localhost:3000/api/requests'
-$requestId = '<request-id>'
-$body = @{ status = 'In Progress' } | ConvertTo-Json
-
-# Authorized IT Department Staff attempt
-Invoke-RestMethod -Method Patch -Uri "$baseUrl/$requestId/status" -Headers @{ 'X-Actor-Id' = 'it-staff-001' } -ContentType 'application/json' -Body $body
-
-# Employee attempt: expected 403
-Invoke-RestMethod -Method Patch -Uri "$baseUrl/$requestId/status" -Headers @{ 'X-Actor-Id' = 'demo-employee' } -ContentType 'application/json' -Body $body
-
-# Missing header: expected 401
-Invoke-RestMethod -Method Patch -Uri "$baseUrl/$requestId/status" -ContentType 'application/json' -Body $body
-
-# Unknown request: expected 404
-Invoke-RestMethod -Method Patch -Uri "$baseUrl/does-not-exist/status" -Headers @{ 'X-Actor-Id' = 'it-staff-001' } -ContentType 'application/json' -Body $body
-
-# Recognized but invalid transition: expected 409 after the request is In Progress
-$resolvedBody = @{ status = 'Resolved' } | ConvertTo-Json
-Invoke-RestMethod -Method Patch -Uri "$baseUrl/$requestId/status" -Headers @{ 'X-Actor-Id' = 'it-staff-001' } -ContentType 'application/json' -Body $resolvedBody
+Push-Location frontend; npx.cmd playwright install chromium; Pop-Location
 ```
 
-To prove persistence, submit a request, stop and restart the backend, then call `GET http://localhost:3000/api/requests` and confirm the request remains. The Week 3 manual persistence result is pending.
+Run the exact verification commands from the repository root:
 
-## First-Version Scope
+```powershell
+npm.cmd --prefix backend run test:unit
+npm.cmd --prefix backend run test:integration
+npm.cmd --prefix backend run test:e2e
+npm.cmd --prefix frontend run test:e2e
+npm.cmd --prefix backend run build
+npm.cmd --prefix frontend run build
+Push-Location frontend; npx.cmd tsc --noEmit; Pop-Location
+git diff --check
+```
 
-The completed first version will focus on the main internal request process.
+Backend unit tests contain 1 test, database integration contains 2 tests, backend API E2E contains 2 tests, and browser E2E contains 1 test. Integration and backend API E2E use unique temporary SQLite databases and remove their state afterward. Playwright creates its own temporary database and manages its backend and frontend test servers. These tests do not modify development data.
 
-It will not include email or SMS notifications, attachments, live chat, AI features, appointment booking, advanced analytics, external integrations, or a mobile application.
+## Troubleshooting
+
+- **Port 3000 or 5173 is busy:** stop the process using the port, then restart the corresponding terminal command. Playwright requires both ports to be available because its configuration starts fresh servers.
+- **Database setup fails:** confirm `backend/.env` exists, then rerun `npm.cmd --prefix backend run prisma:generate`, `npm.cmd --prefix backend run prisma:migrate`, and `npm.cmd --prefix backend run prisma:seed`.
+- **A server stopped:** restart `npm.cmd --prefix backend run start:dev` or `npm.cmd --prefix frontend run dev` in its terminal. The browser E2E command starts its own servers and should not be run against manually managed test servers.

@@ -8,3 +8,5 @@ node_modules/
 backend/.env
 backend/dist/
 frontend/dist/
+frontend/test-results/
+frontend/playwright-report/
