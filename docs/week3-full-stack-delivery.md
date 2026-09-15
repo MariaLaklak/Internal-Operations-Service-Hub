@@ -135,6 +135,6 @@ External integration is intentionally not required for this product slice. There
 
 Remaining production limitations and non-goals include real authentication, user registration, assignment, approvals, comments, request history, notifications, complete lifecycle transitions, concurrency handling, and a production database deployment strategy.
 
-Commit reference: **pending until the work is committed**.
+Commit reference: `097275f` (`test: automate week 3 product confidence`).
 
 Verification date: **September 15, 2026**.
