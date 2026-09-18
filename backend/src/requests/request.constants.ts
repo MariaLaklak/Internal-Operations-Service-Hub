@@ -8,3 +8,5 @@ export const SUPPORTED_STATUSES = ['Submitted', 'In Progress', 'Resolved'] as co
 export const SUBMITTED_STATUS = SUPPORTED_STATUSES[0];
 export const IN_PROGRESS_STATUS = SUPPORTED_STATUSES[1];
 export const DEPARTMENT_STAFF_ROLE = 'Department Staff';
+export const EMPLOYEE_ROLE = 'Employee';
+export const INTAKE_ADVICE_FAILURE_MESSAGE = 'The Service Hub could not produce request intake advice right now.';

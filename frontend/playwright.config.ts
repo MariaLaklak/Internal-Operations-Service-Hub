@@ -23,6 +23,12 @@ export default defineConfig({
   },
   webServer: [
     {
+      command: 'npm.cmd --prefix ../backend run start:provider',
+      url: 'http://127.0.0.1:3200/health',
+      reuseExistingServer: false,
+      timeout: 120000
+    },
+    {
       command: 'npm.cmd --prefix ../backend run start:dev',
       url: 'http://127.0.0.1:3000/api/requests',
       reuseExistingServer: false,
