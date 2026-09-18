@@ -6,7 +6,7 @@ This repository contains a small internal request workflow for IT, Human Resourc
 
 The application path is React -> HTTP API -> NestJS -> Prisma -> SQLite. Real authentication, assignment, approvals, comments, notifications, and external integrations are outside this slice.
 
-See [Week 3 full-stack delivery](docs/week3-full-stack-delivery.md) for the evidence record and [Week 3 boundary protection](docs/week3-boundary-protection.md) for the authorization details.
+See [Week 3 full-stack delivery](docs/week3-full-stack-delivery.md) for the evidence record, [Week 3 boundary protection](docs/week3-boundary-protection.md) for the authorization details, and [Week 4 production AI delivery](docs/week4-production-ai.md) for the advisory intake boundary and evidence.
 
 ## Prerequisites
 
@@ -112,6 +112,52 @@ Content-Type: application/json
 
 The implemented transition is `Submitted` to `In Progress`. Blank titles return `400`; denied status actions return `403`; missing or unknown teaching aliases return `401`; an invalid lifecycle transition returns `409`.
 
+## Week 4 AI Intake Advice
+
+The request form can use the existing description as employee-reported issue text and request deterministic AI intake advice. The advice suggests a title, department, summary, missing information, and next step. It is advisory only: the employee can use the title and department suggestion, but must review the form and press **Submit request**. It never creates a request or changes approval or status automatically.
+
+The local provider requires no paid account. After installation and initialization above, start it in a separate PowerShell terminal:
+
+```powershell
+npm.cmd --prefix backend run start:provider
+```
+
+Start the backend and frontend in two additional terminals:
+
+```powershell
+# Backend
+npm.cmd --prefix backend run start:dev
+```
+
+```powershell
+# Frontend
+npm.cmd --prefix frontend run dev
+```
+
+Open `http://localhost:5173`, enter an issue in **Description**, select **Get AI intake advice**, review the five fields, and optionally choose **Use suggestion**. The request is created only after selecting **Submit request**.
+
+Run the deterministic eight-case evaluation with:
+
+```powershell
+npm.cmd --prefix backend run test:ai-eval
+```
+
+The complete automated check sequence is:
+
+```powershell
+npm.cmd --prefix backend run test:ai-eval
+npm.cmd --prefix backend run test:unit
+npm.cmd --prefix backend run test:integration
+npm.cmd --prefix backend run test:e2e
+npm.cmd --prefix frontend run test:e2e
+npm.cmd --prefix backend run build
+npm.cmd --prefix frontend run build
+Push-Location frontend
+npx.cmd tsc --noEmit
+Pop-Location
+git diff --check
+```
+
 ## Automated Checks
 
 Install Chromium once before the browser suite:
@@ -133,7 +179,7 @@ Push-Location frontend; npx.cmd tsc --noEmit; Pop-Location
 git diff --check
 ```
 
-Backend unit tests contain 1 test, database integration contains 2 tests, backend API E2E contains 2 tests, and browser E2E contains 1 test. Integration and backend API E2E use unique temporary SQLite databases and remove their state afterward. Playwright creates its own temporary database and manages its backend and frontend test servers. These tests do not modify development data.
+AI evaluation contains 8 cases, backend unit tests contain 9 tests, database integration contains 2 tests, backend API E2E contains 8 tests, and browser E2E contains 2 tests. Integration and backend API E2E use unique temporary SQLite databases and remove their state afterward. Playwright creates its own temporary database and manages its provider, backend, and frontend test servers. These tests do not modify development data.
 
 ## Troubleshooting
 
