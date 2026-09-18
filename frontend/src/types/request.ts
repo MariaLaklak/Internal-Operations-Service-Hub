@@ -19,3 +19,11 @@ export type CreateRequestInput = {
   department: Department;
   requiresApproval: boolean;
 };
+
+export type RequestIntakeAdvice = {
+  suggestedTitle: string;
+  suggestedDepartment: Department | null;
+  summary: string;
+  missingInformation: string[];
+  suggestedNextStep: string;
+};

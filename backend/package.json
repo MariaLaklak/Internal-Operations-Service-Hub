@@ -5,13 +5,15 @@
   "scripts": {
     "build": "nest build",
     "start:dev": "nest start --watch",
+    "start:provider": "tsx scripts/local-ai-provider.ts",
     "start": "node dist/src/main.js",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev --name init",
     "prisma:seed": "tsx prisma/seed.ts",
     "test:unit": "jest --config ./test/jest-unit.json --runInBand",
     "test:integration": "jest --config ./test/jest-integration.json --runInBand",
-    "test:e2e": "jest --config ./test/jest-e2e.json --runInBand"
+    "test:e2e": "jest --config ./test/jest-e2e.json --runInBand",
+    "test:ai-eval": "jest --config ./test/jest-ai-eval.json --runInBand"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

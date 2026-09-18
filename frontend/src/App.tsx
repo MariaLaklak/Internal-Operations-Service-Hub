@@ -44,7 +44,10 @@ export default function App() {
       <section className="workspace">
         <div className="panel">
           <h2>New request</h2>
-          <RequestForm onCreated={(request) => setRequests((current) => [request, ...current])} />
+          <RequestForm
+            actorAlias={actorAlias}
+            onCreated={(request) => setRequests((current) => [request, ...current])}
+          />
         </div>
         <div className="panel">
           <h2>Your requests</h2>

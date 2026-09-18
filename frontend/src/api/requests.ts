@@ -1,4 +1,4 @@
-import type { ActorAlias, CreateRequestInput, Request } from '../types/request';
+import type { ActorAlias, CreateRequestInput, Request, RequestIntakeAdvice } from '../types/request';
 
 const API_URL = 'http://localhost:3000/api/requests';
 
@@ -20,6 +20,22 @@ export async function createRequest(input: CreateRequestInput): Promise<Request>
   });
 
   return readResponse<Request>(response);
+}
+
+export async function getRequestIntakeAdvice(
+  reportedIssue: string,
+  actorAlias: ActorAlias
+): Promise<RequestIntakeAdvice> {
+  const response = await fetch(`${API_URL}/intake-advice`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Actor-Id': actorAlias
+    },
+    body: JSON.stringify({ reportedIssue })
+  });
+
+  return readResponse<RequestIntakeAdvice>(response);
 }
 
 export async function getRequests(): Promise<Request[]> {
