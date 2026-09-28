@@ -1,4 +1,5 @@
-import { BadGatewayException, ForbiddenException, UnauthorizedException } from '@nestjs/common';
+import { BadGatewayException, ForbiddenException, Logger, UnauthorizedException } from '@nestjs/common';
+import { createServer } from 'node:http';
 import { PrismaService } from '../prisma/prisma.service';
 import { INTAKE_ADVICE_FAILURE_MESSAGE } from './request.constants';
 import { RequestIntakeAdviceDto } from './dto/request-intake-advice.dto';
@@ -67,6 +68,8 @@ describe('RequestIntakeService', () => {
 
 describe('RequestIntakeProvider', () => {
   let fetchSpy: jest.SpyInstance;
+  const originalProviderUrl = process.env.AI_PROVIDER_URL;
+  const originalTimeout = process.env.AI_PROVIDER_TIMEOUT_MS;
 
   beforeEach(() => {
     fetchSpy = jest.spyOn(globalThis, 'fetch');
@@ -74,6 +77,16 @@ describe('RequestIntakeProvider', () => {
 
   afterEach(() => {
     fetchSpy.mockRestore();
+    if (originalProviderUrl === undefined) {
+      delete process.env.AI_PROVIDER_URL;
+    } else {
+      process.env.AI_PROVIDER_URL = originalProviderUrl;
+    }
+    if (originalTimeout === undefined) {
+      delete process.env.AI_PROVIDER_TIMEOUT_MS;
+    } else {
+      process.env.AI_PROVIDER_TIMEOUT_MS = originalTimeout;
+    }
   });
 
   function mockProviderResponse(content: unknown, ok = true) {
@@ -131,5 +144,32 @@ describe('RequestIntakeProvider', () => {
       reportedIssue: 'I need help.',
       allowedDepartments: ['IT', 'Human Resources', 'Finance']
     })).rejects.toThrow(new BadGatewayException(INTAKE_ADVICE_FAILURE_MESSAGE));
+  });
+
+  it('times out provider requests and preserves the stable 502 response', async () => {
+    const loggerSpy = jest.spyOn(Logger.prototype, 'warn').mockImplementation();
+    const server = createServer((_request, response) => {
+      setTimeout(() => response.end('{}'), 150);
+    });
+    await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
+    const address = server.address();
+    if (!address || typeof address === 'string') {
+      throw new Error('Test provider did not bind to a port.');
+    }
+    process.env.AI_PROVIDER_URL = `http://127.0.0.1:${address.port}/v1/chat/completions`;
+    process.env.AI_PROVIDER_TIMEOUT_MS = '20';
+
+    try {
+      const provider = new RequestIntakeProvider();
+      await expect(provider.generate({
+        reportedIssue: 'private reported issue',
+        allowedDepartments: ['IT']
+      })).rejects.toThrow(new BadGatewayException(INTAKE_ADVICE_FAILURE_MESSAGE));
+      expect(loggerSpy).toHaveBeenCalledWith(expect.stringContaining('"category":"timeout"'));
+      expect(loggerSpy).not.toHaveBeenCalledWith(expect.stringContaining('private reported issue'));
+    } finally {
+      loggerSpy.mockRestore();
+      await new Promise<void>((resolve, reject) => server.close((error) => error ? reject(error) : resolve()));
+    }
   });
 });
