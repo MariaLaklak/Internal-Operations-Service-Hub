@@ -20,6 +20,7 @@ See [Week 3 full-stack delivery](docs/week3-full-stack-delivery.md) for the evid
 - [Architecture](docs/architecture.md)
 - [Data Model](docs/data-model.md)
 - [Architecture Decision Record](docs/decisions/ADR-001.md)
+- [Week 5 Local Release Operations](docs/week5-release-operations.md)
 
 ## Install and Initialize
 
@@ -34,7 +35,7 @@ npm.cmd --prefix backend run prisma:migrate
 npm.cmd --prefix backend run prisma:seed
 ```
 
-The development database is `backend/prisma/dev.db` through `backend/.env`. Do not commit `backend/.env` or the database file.
+The SQLite database location is controlled by `DATABASE_URL` in `backend/.env`; do not assume a fixed file path. Do not commit `backend/.env` or the database file.
 
 ## Run Locally
 
@@ -179,7 +180,13 @@ Push-Location frontend; npx.cmd tsc --noEmit; Pop-Location
 git diff --check
 ```
 
-AI evaluation contains 8 cases, backend unit tests contain 9 tests, database integration contains 2 tests, backend API E2E contains 8 tests, and browser E2E contains 2 tests. Integration and backend API E2E use unique temporary SQLite databases and remove their state afterward. Playwright creates its own temporary database and manages its provider, backend, and frontend test servers. These tests do not modify development data.
+The Week 5 release gate passed on September 28, 2026: backend unit tests, 10; database integration tests, 2; backend API E2E tests, 14; AI evaluations, 8; browser E2E tests, 2. Integration and backend API E2E use unique temporary SQLite databases and remove their state afterward. Playwright creates its own temporary database and manages its provider, backend, and frontend test servers. These tests do not modify development data.
+
+## Week 5 Local Operations
+
+For local operation, start the deterministic provider, NestJS backend, and React frontend in that order, each in a separate PowerShell terminal. Their local endpoints are documented in [Week 5 Local Release Operations](docs/week5-release-operations.md). Backend settings are listed in `backend/.env.example`; the frontend API origin is configured by `VITE_API_BASE_URL` from `frontend/.env.example`. `DATABASE_URL` determines the SQLite file location; preserve the existing local database when changing configuration.
+
+The API exposes `GET /api/health/live`, `GET /api/health/ready`, and aggregate `GET /api/health`. From the repository root, `npm.cmd run verify:release` runs the complete release gate, `npm.cmd run monitor:health` polls health until interrupted, and `npm.cmd run smoke` performs non-mutating health, request-list, and intake-advice checks. See [Week 5 Local Release Operations](docs/week5-release-operations.md) for endpoint contracts, environment defaults, startup commands, and the observed local evidence. The service is locally proven but has not been deployed; its deployment URL is pending.
 
 ## Troubleshooting
 

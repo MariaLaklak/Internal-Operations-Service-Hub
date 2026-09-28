@@ -1,4 +1,5 @@
 import { createServer } from 'node:http';
+import { positiveInteger } from '../src/config/positive-integer';
 
 const allowedDepartments = ['IT', 'Human Resources', 'Finance'];
 export type LocalAiProviderMode = 'normal' | 'malformed' | 'failure';
@@ -100,9 +101,12 @@ export function createLocalAiProviderServer(initialMode: LocalAiProviderMode = '
 }
 
 if (require.main === module) {
-  const port = Number.parseInt(process.env.AI_PROVIDER_PORT ?? '3200', 10) || 3200;
+  const portValue = process.env.PORT ?? process.env.AI_PROVIDER_PORT;
+  const port = positiveInteger(portValue, 3200, process.env.PORT ? 'PORT' : 'AI_PROVIDER_PORT');
+  positiveInteger(process.env.AI_PROVIDER_TIMEOUT_MS, 5000, 'AI_PROVIDER_TIMEOUT_MS');
+  const host = process.env.AI_PROVIDER_HOST ?? '127.0.0.1';
   const provider = createLocalAiProviderServer(process.env.AI_PROVIDER_TEST_MODE as LocalAiProviderMode ?? 'normal');
-  provider.server.listen(port, '127.0.0.1', () => {
-    console.log(`Local AI provider listening on http://127.0.0.1:${port}`);
+  provider.server.listen(port, process.env.PORT ? '0.0.0.0' : host, () => {
+    console.log('Local AI provider listening.');
   });
 }

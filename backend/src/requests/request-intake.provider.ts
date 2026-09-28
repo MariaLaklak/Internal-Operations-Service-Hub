@@ -1,5 +1,6 @@
-import { BadGatewayException, Injectable } from '@nestjs/common';
+import { BadGatewayException, Injectable, Logger } from '@nestjs/common';
 import { INTAKE_ADVICE_FAILURE_MESSAGE, SUPPORTED_DEPARTMENTS } from './request.constants';
+import { positiveInteger } from '../config/positive-integer';
 
 export type RequestIntakeAdviceResponse = {
   suggestedTitle: string;
@@ -20,15 +21,21 @@ type OpenAiResponse = {
 
 @Injectable()
 export class RequestIntakeProvider {
+  private readonly logger = new Logger(RequestIntakeProvider.name);
+
   async generate(input: RequestIntakeProviderInput): Promise<RequestIntakeAdviceResponse> {
     const providerUrl = process.env.AI_PROVIDER_URL ?? 'http://127.0.0.1:3200/v1/chat/completions';
     const model = process.env.AI_PROVIDER_MODEL ?? 'local-request-intake';
 
     let response: Response;
+    let timeoutSignal: AbortSignal | undefined;
     try {
+      const timeoutMs = positiveInteger(process.env.AI_PROVIDER_TIMEOUT_MS, 5000, 'AI_PROVIDER_TIMEOUT_MS');
+      timeoutSignal = AbortSignal.timeout(timeoutMs);
       response = await fetch(providerUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        signal: timeoutSignal,
         body: JSON.stringify({
           model,
           messages: [
@@ -46,34 +53,52 @@ export class RequestIntakeProvider {
           ]
         })
       });
-    } catch {
-      throw this.providerFailure();
+    } catch (error) {
+      throw this.providerFailure(this.safeFailureCategory(error, timeoutSignal));
     }
 
     if (!response.ok) {
-      throw this.providerFailure();
+      throw this.providerFailure('http_error');
     }
 
     let envelope: OpenAiResponse;
     try {
       envelope = await response.json() as OpenAiResponse;
     } catch {
-      throw this.providerFailure();
+      throw this.providerFailure('invalid_response');
     }
 
     const content = envelope.choices?.[0]?.message?.content;
     if (typeof content !== 'string') {
-      throw this.providerFailure();
+      throw this.providerFailure('invalid_response');
     }
 
     let candidate: unknown;
     try {
       candidate = JSON.parse(content);
     } catch {
-      throw this.providerFailure();
+      throw this.providerFailure('invalid_response');
     }
 
     return this.reconstructAdvice(candidate);
+  }
+
+  async checkHealth(): Promise<boolean> {
+    const healthUrl = process.env.AI_PROVIDER_HEALTH_URL ?? 'http://127.0.0.1:3200/health';
+    let timeoutSignal: AbortSignal | undefined;
+    try {
+      const timeoutMs = positiveInteger(process.env.AI_PROVIDER_TIMEOUT_MS, 5000, 'AI_PROVIDER_TIMEOUT_MS');
+      timeoutSignal = AbortSignal.timeout(timeoutMs);
+      const response = await fetch(healthUrl, { signal: timeoutSignal });
+      if (!response.ok) {
+        this.logFailure('provider_health', 'http_error');
+        return false;
+      }
+      return true;
+    } catch (error) {
+      this.logFailure('provider_health', this.safeFailureCategory(error, timeoutSignal));
+      return false;
+    }
   }
 
   private reconstructAdvice(candidate: unknown): RequestIntakeAdviceResponse {
@@ -125,7 +150,29 @@ export class RequestIntakeProvider {
     return typeof value === 'object' && value !== null && !Array.isArray(value);
   }
 
-  private providerFailure(): BadGatewayException {
+  private safeFailureCategory(error: unknown, timeoutSignal?: AbortSignal): string {
+    if (
+      timeoutSignal?.aborted ||
+      (error instanceof Error && (error.name === 'TimeoutError' || error.name === 'AbortError'))
+    ) {
+      return 'timeout';
+    }
+    if (error instanceof Error && error.message.includes('must be a positive integer')) {
+      return 'invalid_configuration';
+    }
+    return 'network_error';
+  }
+
+  private logFailure(capability: string, category: string): void {
+    this.logger.warn(JSON.stringify({
+      event: 'ai_provider_failure',
+      capability,
+      category
+    }));
+  }
+
+  private providerFailure(category = 'invalid_response'): BadGatewayException {
+    this.logFailure('request_intake_advice', category);
     return new BadGatewayException(INTAKE_ADVICE_FAILURE_MESSAGE);
   }
 }

@@ -4,6 +4,9 @@
   "private": true,
   "scripts": {
     "backend:install": "npm.cmd --prefix backend install",
-    "frontend:install": "npm.cmd --prefix frontend install"
+    "frontend:install": "npm.cmd --prefix frontend install",
+    "verify:release": "node scripts/verify-release.mjs",
+    "monitor:health": "node scripts/monitor-health.mjs",
+    "smoke": "node scripts/smoke.mjs"
   }
 }

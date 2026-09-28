@@ -31,6 +31,7 @@ export default defineConfig({
     {
       command: 'npm.cmd --prefix ../backend run start:dev',
       url: 'http://127.0.0.1:3000/api/requests',
+      env: { CORS_ORIGINS: 'http://127.0.0.1:5173' },
       reuseExistingServer: false,
       timeout: 120000
     },
