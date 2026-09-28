@@ -57,3 +57,39 @@ This establishes local operational proof only. The service has not been deployed
 ## Recovery Principle
 
 If a local process or check fails, stop the processes started for the check and restore the last known-good local configuration. Preserve the SQLite file and take a backup before any future schema or deployment operation. For a future deployment, roll back application/configuration to a known-good release; do not delete or blindly roll back persistent data.
+
+## Railway Deployment Preparation
+
+The prepared design uses three services sourced from the same GitHub repository. Configure each service separately in Railway with the listed root directory and the Dockerfile at that root; leave Railway's build command unset so the Dockerfile builds the image. No service-specific public URL or credential is committed here.
+
+| Service | Root directory | Build | Start | Storage and health |
+| --- | --- | --- | --- | --- |
+| `ai-provider` | `backend` | Dockerfile at root; installs backend dependencies, generates Prisma Client, and builds NestJS/provider output | `npm run start:provider:prod` | No volume; HTTP health path `/health` |
+| `backend` | `backend` | Dockerfile at root; installs dependencies, generates Prisma Client, and builds NestJS | `npm run start:prod:migrate` | Attach one persistent volume at `/data`; HTTP health path `/api/health/live` |
+| `frontend` | `frontend` | Dockerfile at root; installs frontend dependencies and runs the Vite production build | `node server.mjs` | Static `dist` served on Railway `PORT`; no volume |
+
+The backend startup command runs `prisma migrate deploy` before starting NestJS. A migration failure stops startup. Prisma reads `DATABASE_URL` at runtime; configure it in Railway to point to a SQLite database file beneath the mounted `/data` directory. Do not bake a database URL into the image. Keep the backend to one replica when using SQLite on a volume, and establish a tested volume backup/restore procedure before using non-disposable data.
+
+### Railway Variables
+
+Set variables in the corresponding Railway service. Names below are the required configuration keys; enter actual values only in Railway, never in committed files.
+
+- `ai-provider`: platform `PORT`; optional `AI_PROVIDER_TIMEOUT_MS` and `AI_PROVIDER_TEST_MODE`. When Railway supplies `PORT`, the provider binds to `0.0.0.0`; local runs continue to use `AI_PROVIDER_PORT` and `AI_PROVIDER_HOST`.
+- `backend`: `PORT`, `DATABASE_URL`, `CORS_ORIGINS`, `AI_PROVIDER_URL`, `AI_PROVIDER_HEALTH_URL`, `AI_PROVIDER_MODEL`, and `AI_PROVIDER_TIMEOUT_MS`. Configure provider URLs to use Railway's private service network where available.
+- `frontend`: build variable `VITE_API_BASE_URL`, set to the backend public API origin before building the frontend image. Railway assigns the runtime `PORT` for the static server.
+
+The API base URL and allowed browser origin are different settings: `VITE_API_BASE_URL` identifies the backend origin used by the browser, while `CORS_ORIGINS` on the backend must allow the frontend origin.
+
+### Deployment Order and URLs
+
+1. Deploy `ai-provider` and confirm its `/health` check.
+2. Deploy `backend` with its `/data` volume, runtime variables, and migration startup command; confirm `/api/health/live` and `/api/health/ready`.
+3. Set the frontend build variable to `<BACKEND_PUBLIC_URL>` and deploy `frontend`.
+4. Update backend `CORS_ORIGINS` to `<FRONTEND_PUBLIC_ORIGIN>`.
+5. Redeploy the backend if the Railway variable update does not restart it, then verify the health endpoints and run the smoke proof.
+
+Pending deployment URLs: backend `<BACKEND_PUBLIC_URL>`, frontend `<FRONTEND_PUBLIC_ORIGIN>`, and private provider `<AI_PROVIDER_PRIVATE_ORIGIN>`. These are placeholders only; the system remains locally proven and has not been deployed.
+
+For rollback, restore the last known-good image and service variables while preserving the `/data` volume. Do not delete the volume or automatically reverse an applied migration; restore data only through a verified backup procedure. The current demo actor aliases are not authentication, so public exposure requires an access-control decision before real employee data is used.
+
+Dockerfiles and container configuration were not built locally because Docker is unavailable in the current environment. The repository release gate validates application builds and tests, but does not replace image-build validation before deployment.

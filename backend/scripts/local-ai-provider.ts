@@ -101,11 +101,12 @@ export function createLocalAiProviderServer(initialMode: LocalAiProviderMode = '
 }
 
 if (require.main === module) {
-  const port = positiveInteger(process.env.AI_PROVIDER_PORT, 3200, 'AI_PROVIDER_PORT');
+  const portValue = process.env.PORT ?? process.env.AI_PROVIDER_PORT;
+  const port = positiveInteger(portValue, 3200, process.env.PORT ? 'PORT' : 'AI_PROVIDER_PORT');
   positiveInteger(process.env.AI_PROVIDER_TIMEOUT_MS, 5000, 'AI_PROVIDER_TIMEOUT_MS');
   const host = process.env.AI_PROVIDER_HOST ?? '127.0.0.1';
   const provider = createLocalAiProviderServer(process.env.AI_PROVIDER_TEST_MODE as LocalAiProviderMode ?? 'normal');
-  provider.server.listen(port, host, () => {
+  provider.server.listen(port, process.env.PORT ? '0.0.0.0' : host, () => {
     console.log('Local AI provider listening.');
   });
 }
