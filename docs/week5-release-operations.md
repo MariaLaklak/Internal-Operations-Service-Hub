@@ -52,7 +52,7 @@ Observed locally on September 28, 2026:
 - The developer SQLite database was not deleted, and no migrations were run during this local operational proof.
 - The release gate passed all steps: 10 backend unit tests, 2 database integration tests, 14 backend API E2E tests, 8 AI evaluations, and 2 browser E2E tests. Prisma generation, backend/frontend builds, frontend TypeScript checking, and the final diff check also passed.
 
-This establishes local operational proof only. The service has not been deployed. Pending deployment URL: **TBD**.
+This establishes verified local and deployed operational proof. The Railway deployment was completed and manually verified on September 29, 2026.
 
 ## Recovery Principle
 
@@ -88,7 +88,9 @@ The API base URL and allowed browser origin are different settings: `VITE_API_BA
 4. Update backend `CORS_ORIGINS` to `<FRONTEND_PUBLIC_ORIGIN>`.
 5. Redeploy the backend if the Railway variable update does not restart it, then verify the health endpoints and run the smoke proof.
 
-Pending deployment URLs: backend `<BACKEND_PUBLIC_URL>`, frontend `<FRONTEND_PUBLIC_ORIGIN>`, and private provider `<AI_PROVIDER_PRIVATE_ORIGIN>`. These are placeholders only; the system remains locally proven and has not been deployed.
+Deployment URLs: frontend `https://abundant-creativity-production-d28d.up.railway.app`, backend `https://internal-operations-service-hub-production-f200.up.railway.app`, and AI provider `https://ai-provider-production.up.railway.app`.
+
+The deployed system was manually verified on September 29, 2026: all three Railway services were online, the frontend loaded from its public URL, AI intake advice returned successfully, an Employee request was created with `Submitted` status, and the request remained after a browser refresh. The production database was initialized once through the backend Railway Console with `npm run prisma:seed`. This remains a teaching demonstration; the actor selector is not real authentication.
 
 For rollback, restore the last known-good image and service variables while preserving the `/data` volume. Do not delete the volume or automatically reverse an applied migration; restore data only through a verified backup procedure. The current demo actor aliases are not authentication, so public exposure requires an access-control decision before real employee data is used.
 
